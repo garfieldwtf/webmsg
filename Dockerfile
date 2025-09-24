@@ -1,5 +1,5 @@
-# Use python:alpine3.21 as the base image
-FROM python:alpine3.21
+# Use python:alpine as the base image
+FROM python:alpine
 
 # Set environment variable for the custom message
 ENV MESSAGE="Hello, Docker World!"
