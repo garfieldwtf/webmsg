@@ -1,0 +1,66 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  lint:
+    name: Lint and Validate
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Lint Dockerfile
+      uses: hadolint/hadolint-action@v3.1.0
+      with:
+        dockerfile: Dockerfile
+        failure-threshold: warning
+
+    - name: Validate Docker image build
+      run: docker build -t webmsg-pr-test .
+
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build test image
+      run: docker build -t webmsg-test .
+
+    - name: Test container functionality
+      run: |
+        # Start container
+        docker run -d --name webmsg-test -p 8080:8080 -e MESSAGE="PR Test" webmsg-test
+        sleep 5
+        
+        # Test if container is running
+        docker ps | grep webmsg-test || exit 1
+        
+        # Test HTTP response
+        curl -f http://localhost:8080 || exit 1
+        
+        # Test custom message
+        RESPONSE=$(curl -s http://localhost:8080)
+        echo "$RESPONSE" | grep "PR Test" || exit 1
+        
+        # Cleanup
+        docker stop webmsg-test
+        docker rm webmsg-test
+
+    - name: Test default message
+      run: |
+        docker run -d --name webmsg-default -p 8080:8080 webmsg-test
+        sleep 3
+        
+        RESPONSE=$(curl -s http://localhost:8080)
+        echo "$RESPONSE" | grep "Hello, Docker World!" || exit 1
+        
+        docker stop webmsg-default
+        docker rm webmsg-default
