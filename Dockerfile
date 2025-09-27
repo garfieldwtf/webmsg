@@ -1,4 +1,4 @@
-# Use python:alpine as the base image
+# Use python:alpine as the base image.
 FROM python:alpine
 
 # Set environment variable for the custom message
